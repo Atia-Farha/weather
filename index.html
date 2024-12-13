@@ -187,6 +187,10 @@
       const forecastData = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`)
         .then(response => response.json());
 
+      // Fetch AQI and UV Index
+      await fetchAirQuality(lat, lon);
+      await fetchUVIndex(lat, lon);
+
       displayForecast(forecastData);
 
       // Fetch hourly forecast
@@ -205,6 +209,10 @@
       const forecastData = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&appid=${apiKey}`)
         .then(response => response.json());
 
+      // Fetch AQI and UV Index
+      await fetchAirQuality(weatherData.coord.lat, weatherData.coord.lon);
+      await fetchUVIndex(weatherData.coord.lat, weatherData.coord.lon);
+
       displayForecast(forecastData);
 
       // Fetch hourly forecast
@@ -212,6 +220,22 @@
 
       // Fetch alerts
       await fetchWeatherAlerts(weatherData.coord.lat, weatherData.coord.lon);
+    }
+
+    async function fetchAirQuality(lat, lon) {
+      const aqiData = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${apiKey}`)
+        .then(response => response.json());
+
+      const aqi = aqiData.list[0].main.aqi;
+      displayAirQuality(aqi);
+    }
+
+    async function fetchUVIndex(lat, lon) {
+      const uvData = await fetch(`https://api.openweathermap.org/data/2.5/uvi?lat=${lat}&lon=${lon}&appid=${apiKey}`)
+        .then(response => response.json());
+
+      const uvIndex = uvData.value;
+      displayUVIndex(uvIndex);
     }
 
     async function fetchWeatherAlerts(lat, lon) {
@@ -298,6 +322,30 @@
         <p><strong>Current Time: </strong>${currentTime}</p>
         <p><strong>Sunrise: </strong>${sunrise}</p>
         <p><strong>Sunset: </strong>${sunset}</p>
+        <div id="air-quality">
+          <!-- Air Quality and UV Index will be displayed here -->
+        </div>
+      `;
+    }
+
+    function displayAirQuality(aqi) {
+      let aqiStatus;
+      if (aqi === 1) aqiStatus = 'Good';
+      else if (aqi === 2) aqiStatus = 'Fair';
+      else if (aqi === 3) aqiStatus = 'Moderate';
+      else if (aqi === 4) aqiStatus = 'Poor';
+      else if (aqi === 5) aqiStatus = 'Very Poor';
+
+      const airQualityDiv = document.getElementById('air-quality');
+      airQualityDiv.innerHTML += `
+        <p><strong>Air Quality Index (AQI): </strong>${aqiStatus}</p>
+      `;
+    }
+
+    function displayUVIndex(uvIndex) {
+      const airQualityDiv = document.getElementById('air-quality');
+      airQualityDiv.innerHTML += `
+        <p><strong>UV Index: </strong>${uvIndex}</p>
       `;
     }
 
