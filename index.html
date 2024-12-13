@@ -308,23 +308,23 @@
 
       weatherDiv.innerHTML = `
         <h2>${name}</h2>
+        <p><strong>${currentTime}</strong></p>
         <img class="weather-icon" src="https://openweathermap.org/img/wn/${iconCode}@2x.png" alt="${weather[0].description}">
         <p>Temperature: ${main.temp}°C</p>
-        <p>Humidity: ${main.humidity}%</p>
-        <p>Wind Speed: ${wind.speed} m/s</p>
         <p>Condition: ${weather[0].description}</p>
-        <p>Dew Point: ${dewPoint.toFixed(1)}°C</p>
-        <p>Cloudiness: ${clouds.all}%</p>
-        <p>Visibility: ${visibility / 1000} km</p>
+        <p>Wind Speed: ${wind.speed} m/s</p>
         <p>Pressure: ${pressure} hPa</p>
+        <p>Humidity: ${main.humidity}%</p>
+        <p>Dew Point: ${dewPoint.toFixed(1)}°C</p>
+        <p>Visibility: ${visibility / 1000} km</p>
+        <p>Cloudiness: ${clouds.all}%</p>
         <p>Rain: ${rain} mm</p>
         <p>Snow: ${snow} mm</p>
-        <p><strong>Current Time: </strong>${currentTime}</p>
-        <p><strong>Sunrise: </strong>${sunrise}</p>
-        <p><strong>Sunset: </strong>${sunset}</p>
         <div id="air-quality">
           <!-- Air Quality and UV Index will be displayed here -->
         </div>
+        <p><strong>Sunrise: </strong>${sunrise}</p>
+        <p><strong>Sunset: </strong>${sunset}</p>
       `;
     }
 
