@@ -4,19 +4,330 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Weather App</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+
+    .search {
+      margin-bottom: 20px;
+    }
+
+    input {
+      padding: 10px;
+      width: 70%;
+      border: none;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background: #fff;
+      color: #333;
+      cursor: pointer;
+    }
+
+    #weather, #forecast, #hourly-forecast, #alerts {
+      margin-top: 20px;
+    }
+
+    .weather-icon {
+      width: 100px;
+      height: 100px;
+      margin: auto;
+    }
+
+    .forecast-container {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding: 10px;
+    }
+
+    .forecast-container::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .forecast-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 5px;
+    }
+
+    .forecast-card {
+      flex: 0 0 auto;
+      width: 120px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .forecast-card img {
+      width: 60px;
+      height: 60px;
+    }
+
+    .hourly-forecast-container {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 10px;
+    }
+
+    .hourly-card {
+      flex: 0 0 auto;
+      width: 100px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .hourly-card img {
+      width: 40px;
+      height: 40px;
+    }
+
+    .current-hour {
+      background-color: #ffcc00; /* Highlight current hour */
+      color: #333;
+    }
+
+    /* Alert Styles */
+    #alerts {
+      margin-top: 30px;
+    }
+
+    .alert {
+      background-color: #ff5c5c;
+      color: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <h1>Weather App</h1>
     <div class="search">
       <input type="text" id="city" placeholder="Enter city name">
-      <button onclick="getWeather()">Get Weather</button>
+      <button id="searchBtn">Search</button>
     </div>
-    <div id="weather-info">
-      <!-- The weather data will be injected here dynamically -->
+    <div id="weather">
+      <!-- Weather data will be displayed here -->
+    </div>
+    <div id="forecast">
+      <h3>7-Day Forecast</h3>
+      <div class="forecast-container">
+        <!-- 7-day forecast data will be displayed here -->
+      </div>
+    </div>
+    <div id="hourly-forecast">
+      <h3>Hourly Forecast</h3>
+      <div class="hourly-forecast-container">
+        <!-- Hourly forecast data will be displayed here -->
+      </div>
+    </div>
+    <div id="alerts">
+      <!-- Weather alerts will be displayed here -->
     </div>
   </div>
-  <script src="script.js"></script>
+  <script>
+    const apiKey = '2296c29338e8ac63aeb5fc283078ee4e';
+    const weatherDiv = document.getElementById('weather');
+    const forecastContainer = document.querySelector('.forecast-container');
+    const hourlyForecastContainer = document.querySelector('.hourly-forecast-container');
+    const alertsDiv = document.getElementById('alerts');
+
+    // Fetch weather for user location
+    window.onload = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          const { latitude, longitude } = position.coords;
+          fetchWeatherByCoords(latitude, longitude);
+        }, () => {
+          alert('Geolocation permission denied. Please search for a city manually.');
+        });
+      } else {
+        alert('Geolocation is not supported by your browser.');
+      }
+    };
+
+    // Search button event listener
+    document.getElementById('searchBtn').addEventListener('click', fetchWeather);
+
+    async function fetchWeather() {
+      const city = document.getElementById('city').value;
+      if (!city) {
+        alert('Please enter a city name!');
+        return;
+      }
+      await fetchWeatherByCity(city);
+    }
+
+    async function fetchWeatherByCoords(lat, lon) {
+      const weatherData = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`)
+        .then(response => response.json());
+
+      displayCurrentWeather(weatherData);
+
+      const forecastData = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`)
+        .then(response => response.json());
+
+      displayForecast(forecastData);
+
+      // Fetch hourly forecast
+      await fetchHourlyForecast(lat, lon);
+
+      // Fetch alerts
+      await fetchWeatherAlerts(lat, lon);
+    }
+
+    async function fetchWeatherByCity(city) {
+      const weatherData = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${apiKey}`)
+        .then(response => response.json());
+
+      displayCurrentWeather(weatherData);
+
+      const forecastData = await fetch(`https://api.openweathermap.org/data/2.5/forecast?q=${city}&units=metric&appid=${apiKey}`)
+        .then(response => response.json());
+
+      displayForecast(forecastData);
+
+      // Fetch hourly forecast
+      await fetchHourlyForecast(weatherData.coord.lat, weatherData.coord.lon);
+
+      // Fetch alerts
+      await fetchWeatherAlerts(weatherData.coord.lat, weatherData.coord.lon);
+    }
+
+    async function fetchWeatherAlerts(lat, lon) {
+      const alertData = await fetch(`https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&exclude=hourly,daily&appid=${apiKey}`)
+        .then(response => response.json());
+
+      // Check if there are any alerts
+      if (alertData.alerts) {
+        alertsDiv.innerHTML = '';
+        alertData.alerts.forEach(alert => {
+          const alertDiv = document.createElement('div');
+          alertDiv.classList.add('alert');
+          alertDiv.innerHTML = `
+            <h4>${alert.event}</h4>
+            <p>${alert.description}</p>
+            <p><strong>Alert Type:</strong> ${alert.sender_name}</p>
+            <p><strong>Start:</strong> ${new Date(alert.start * 1000).toLocaleString()}</p>
+            <p><strong>End:</strong> ${new Date(alert.end * 1000).toLocaleString()}</p>
+          `;
+          alertsDiv.appendChild(alertDiv);
+        });
+      } else {
+        alertsDiv.innerHTML = '<p>No active alerts for this location.</p>';
+      }
+    }
+
+    async function fetchHourlyForecast(lat, lon) {
+      const hourlyData = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&cnt=9&appid=${apiKey}`)
+        .then(response => response.json());
+
+      const currentTime = new Date().getHours();  // Get the current hour (0-23)
+
+      hourlyForecastContainer.innerHTML = '';
+      hourlyData.list.forEach((hour, index) => {
+        const hourTime = new Date(hour.dt_txt).getHours();  // Extract hour
+        const hourTemp = hour.main.temp;
+        const iconCode = hour.weather[0].icon;
+
+        // Create a new div for each hour
+        const hourlyCard = document.createElement('div');
+        hourlyCard.classList.add('hourly-card');
+        if (hourTime === currentTime) {
+          hourlyCard.classList.add('current-hour');  // Highlight current hour
+        }
+
+        hourlyCard.innerHTML = `
+          <p>${hourTime}:00</p>
+          <img src="https://openweathermap.org/img/wn/${iconCode}@2x.png" alt="${hour.weather[0].description}">
+          <p>${hourTemp}°C</p>
+        `;
+
+        hourlyForecastContainer.appendChild(hourlyCard);
+      });
+    }
+
+    function displayCurrentWeather(data) {
+      const { name, main, weather, wind, visibility, clouds, sys, timezone } = data;
+      const iconCode = weather[0].icon;
+      const dewPoint = main.temp - ((100 - main.humidity) / 5);  // Approximate formula for dew point
+      const pressure = main.pressure;
+      const rain = data.rain ? data.rain['1h'] : 0;  // Rain in the last hour (if available)
+      const snow = data.snow ? data.snow['1h'] : 0;  // Snow in the last hour (if available)
+
+      // Convert Sunrise and Sunset time from UTC to local time
+      const sunrise = new Date((sys.sunrise + timezone) * 1000).toLocaleTimeString();
+      const sunset = new Date((sys.sunset + timezone) * 1000).toLocaleTimeString();
+
+      // Get current time in the selected timezone
+      const currentTime = new Date((Date.now() / 1000 + timezone) * 1000).toLocaleString();
+
+      weatherDiv.innerHTML = `
+        <h2>${name}</h2>
+        <img class="weather-icon" src="https://openweathermap.org/img/wn/${iconCode}@2x.png" alt="${weather[0].description}">
+        <p>Temperature: ${main.temp}°C</p>
+        <p>Humidity: ${main.humidity}%</p>
+        <p>Wind Speed: ${wind.speed} m/s</p>
+        <p>Condition: ${weather[0].description}</p>
+        <p>Dew Point: ${dewPoint.toFixed(1)}°C</p>
+        <p>Cloudiness: ${clouds.all}%</p>
+        <p>Visibility: ${visibility / 1000} km</p>
+        <p>Pressure: ${pressure} hPa</p>
+        <p>Rain: ${rain} mm</p>
+        <p>Snow: ${snow} mm</p>
+        <p><strong>Current Time: </strong>${currentTime}</p>
+        <p><strong>Sunrise: </strong>${sunrise}</p>
+        <p><strong>Sunset: </strong>${sunset}</p>
+      `;
+    }
+
+    function displayForecast(data) {
+      const dailyData = [];
+      const seenDates = new Set();
+
+      // Extract unique 7 days from forecast
+      data.list.forEach(item => {
+        const date = new Date(item.dt_txt).toLocaleDateString();
+        if (!seenDates.has(date) && dailyData.length < 7) {
+          dailyData.push(item);
+          seenDates.add(date);
+        }
+      });
+
+      forecastContainer.innerHTML = '';
+      dailyData.forEach(day => {
+        const date = new Date(day.dt_txt).toLocaleDateString();
+        const iconCode = day.weather[0].icon;
+        forecastContainer.innerHTML += `
+          <div class="forecast-card">
+            <p><strong>${date}</strong></p>
+            <img src="https://openweathermap.org/img/wn/${iconCode}@2x.png" alt="${day.weather[0].description}">
+            <p>${day.main.temp}°C</p>
+            <p>${day.weather[0].description}</p>
+          </div>
+        `;
+      });
+    }
+  </script>
 </body>
 </html>
