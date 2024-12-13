@@ -130,7 +130,6 @@
       <!-- Weather data will be displayed here -->
     </div>
     <div id="forecast">
-      <h3>7-Day Forecast</h3>
       <div class="forecast-container">
         <!-- 7-day forecast data will be displayed here -->
       </div>
@@ -350,19 +349,9 @@
     }
 
     function displayForecast(data) {
-      const dailyData = [];
-      const seenDates = new Set();
+      const dailyData = data.list.filter(item => item.dt_txt.includes('12:00:00'));
 
-      // Extract unique 7 days from forecast
-      data.list.forEach(item => {
-        const date = new Date(item.dt_txt).toLocaleDateString();
-        if (!seenDates.has(date) && dailyData.length < 7) {
-          dailyData.push(item);
-          seenDates.add(date);
-        }
-      });
-
-      forecastContainer.innerHTML = '';
+      forecastContainer.innerHTML = '<h3>5-Day Forecast</h3>';
       dailyData.forEach(day => {
         const date = new Date(day.dt_txt).toLocaleDateString();
         const iconCode = day.weather[0].icon;
