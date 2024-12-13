@@ -50,13 +50,6 @@
 
     .forecast-container {
       display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    } 
-
-   .forcast-cards{
-      display: flex;
       gap: 20px;
       overflow-x: auto;
       padding: 10px;
@@ -137,10 +130,9 @@
       <!-- Weather data will be displayed here -->
     </div>
     <div id="forecast">
+      <h3>7-Day Forecast</h3>
       <div class="forecast-container">
-        <div class="forcast-cards">
-        <!-- 5-day forecast data will be displayed here -->
-        </div>
+        <!-- 7-day forecast data will be displayed here -->
       </div>
     </div>
     <div id="hourly-forecast">
@@ -157,7 +149,6 @@
     const apiKey = '2296c29338e8ac63aeb5fc283078ee4e';
     const weatherDiv = document.getElementById('weather');
     const forecastContainer = document.querySelector('.forecast-container');
-    const forcastCards = document.querySelector('.forecast-cards');
     const hourlyForecastContainer = document.querySelector('.hourly-forecast-container');
     const alertsDiv = document.getElementById('alerts');
 
@@ -359,13 +350,23 @@
     }
 
     function displayForecast(data) {
-      const dailyData = data.list.filter(item => item.dt_txt.includes('12:00:00'));
+      const dailyData = [];
+      const seenDates = new Set();
 
-      forecastContainer.innerHTML = '<h3>5-Day Forecast</h3>';
+      // Extract unique 7 days from forecast
+      data.list.forEach(item => {
+        const date = new Date(item.dt_txt).toLocaleDateString();
+        if (!seenDates.has(date) && dailyData.length < 7) {
+          dailyData.push(item);
+          seenDates.add(date);
+        }
+      });
+
+      forecastContainer.innerHTML = '';
       dailyData.forEach(day => {
         const date = new Date(day.dt_txt).toLocaleDateString();
         const iconCode = day.weather[0].icon;
-        forecastCards.innerHTML += `
+        forecastContainer.innerHTML += `
           <div class="forecast-card">
             <p><strong>${date}</strong></p>
             <img src="https://openweathermap.org/img/wn/${iconCode}@2x.png" alt="${day.weather[0].description}">
