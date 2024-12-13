@@ -22,63 +22,59 @@ async function getWeather() {
 
     const { latitude, longitude, name, country } = geoData.results[0];
 
-    // Fetch weather data including daily and hourly forecasts
+    // Fetch detailed weather data
     const weatherRes = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,humidity_2m_max,windspeed_10m_max,pressure_msl,cloudcover_mean&hourly=temperature_2m,humidity_2m,windspeed_10m,pressure_msl,precipitation_sum,cloudcover&timezone=auto`
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&hourly=precipitation,wind_speed,cloudcover,pressure_msl,dewpoint_2m`
     );
     const weatherData = await weatherRes.json();
 
-    if (!weatherData || weatherData.error) {
-      throw new Error("Error fetching weather data from Open-Meteo.");
-    }
+    const { 
+      temperature, 
+      windspeed, 
+      weathercode, 
+      pressure_msl, 
+      dewpoint_2m, 
+      precipitation, 
+      cloudcover 
+    } = weatherData.current_weather;
 
-    const { temperature_2m_max, temperature_2m_min, precipitation_sum, humidity_2m_max, windspeed_10m_max, pressure_msl, cloudcover_mean } = weatherData.daily;
-    const { temperature_2m, humidity_2m, windspeed_10m, pressure_msl: hourlyPressure, precipitation_sum: hourlyPrecipitation, cloudcover } = weatherData.hourly;
+    // Map weather code to description
+    const weatherDescriptions = {
+      0: "Clear sky",
+      1: "Mainly clear",
+      2: "Partly cloudy",
+      3: "Overcast",
+      45: "Fog",
+      48: "Depositing rime fog",
+      51: "Light drizzle",
+      53: "Moderate drizzle",
+      55: "Dense drizzle",
+      61: "Slight rain",
+      63: "Moderate rain",
+      65: "Heavy rain",
+      71: "Slight snow",
+      73: "Moderate snow",
+      75: "Heavy snow",
+      80: "Slight rain showers",
+      81: "Moderate rain showers",
+      82: "Violent rain showers",
+    };
 
-    // Display Daily Forecast
-    let dailyForecastHTML = `<h2>${name}, ${country}</h2>`;
-    dailyForecastHTML += `<p><strong>Daily Forecast:</strong></p>`;
-    dailyForecastHTML += `<table><tr><th>Date</th><th>Max Temp (°C)</th><th>Min Temp (°C)</th><th>Humidity (%)</th><th>Max Wind Speed (km/h)</th><th>Pressure (hPa)</th><th>Cloud Cover (%)</th></tr>`;
+    const conditions = weatherDescriptions[weathercode] || "Unknown";
 
-    for (let i = 0; i < temperature_2m_max.length; i++) {
-      dailyForecastHTML += `
-        <tr>
-          <td>${new Date(weatherData.daily.time[i]).toLocaleDateString()}</td>
-          <td>${temperature_2m_max[i]}</td>
-          <td>${temperature_2m_min[i]}</td>
-          <td>${humidity_2m_max[i]}</td>
-          <td>${windspeed_10m_max[i]}</td>
-          <td>${pressure_msl[i]}</td>
-          <td>${cloudcover_mean[i]}</td>
-        </tr>
-      `;
-    }
-    dailyForecastHTML += `</table>`;
-
-    // Display Hourly Forecast for the first day
-    let hourlyForecastHTML = `<p><strong>Hourly Forecast for Today:</strong></p>`;
-    hourlyForecastHTML += `<table><tr><th>Time</th><th>Temperature (°C)</th><th>Humidity (%)</th><th>Wind Speed (km/h)</th><th>Pressure (hPa)</th><th>Precipitation (mm)</th><th>Cloud Cover (%)</th></tr>`;
-
-    for (let i = 0; i < temperature_2m.length; i++) {
-      hourlyForecastHTML += `
-        <tr>
-          <td>${new Date(weatherData.hourly.time[i]).toLocaleTimeString()}</td>
-          <td>${temperature_2m[i]}</td>
-          <td>${humidity_2m[i]}</td>
-          <td>${windspeed_10m[i]}</td>
-          <td>${hourlyPressure[i]}</td>
-          <td>${hourlyPrecipitation[i]}</td>
-          <td>${cloudcover[i]}</td>
-        </tr>
-      `;
-    }
-    hourlyForecastHTML += `</table>`;
-
-    // Combine both Daily and Hourly forecasts
-    weatherInfo.innerHTML = dailyForecastHTML + hourlyForecastHTML;
-
+    // Display detailed weather data
+    weatherInfo.innerHTML = `
+      <h2>${name}, ${country}</h2>
+      <p><strong>Temperature:</strong> ${temperature}°C</p>
+      <p><strong>Precipitation:</strong> ${precipitation || 0} mm</p>
+      <p><strong>Wind Speed:</strong> ${windspeed} km/h</p>
+      <p><strong>Cloud Cover:</strong> ${cloudcover || 0}%</p>
+      <p><strong>Pressure:</strong> ${pressure_msl} hPa</p>
+      <p><strong>Dew Point:</strong> ${dewpoint_2m}°C</p>
+      <p><strong>Conditions:</strong> ${conditions}</p>
+    `;
   } catch (error) {
-    weatherInfo.innerHTML = `Error fetching weather data!<br><pre>${error.message}</pre>`;
-    console.error("Error: ", error);
+    weatherInfo.innerHTML = "Error fetching weather data!";
+    console.error(error);
   }
 }
